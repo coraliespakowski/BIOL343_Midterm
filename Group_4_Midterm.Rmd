@@ -51,8 +51,10 @@ The four files are in the `data` folder: `sample_metadata.csv`, `otu_table.csv`,
 Load the packages you will use (Chapter 10, *Setup*): `dplyr`, `tidyr`, `tibble` and `ggplot2` (or `tidyverse`, which loads all of them).
 
 ```{r load-packages, message=FALSE}
+library(tidyverse)
 
 ```
+
 ## 2. Import the four files
 
 Import each file and save them as `otu`, `tax`, `metadata` and `alpha_metrics`. For `tax`, the row names should be the `ASVID` column.
@@ -61,11 +63,26 @@ Hint: refer to Chapter 3, *Import Data* in RCC2e.
 
 ```{r import-data}
 #otu <-
-#tax <-
-#metadata <-
-#alpha_metrics <-
+otu <- read.csv(
+  "/Users/coraliespakowski/Desktop/BIOL 343/BIOL343_Midterm/Data/otu_table.csv"
+)
 
+#tax <-
+tax <- read.csv(
+  "/Users/coraliespakowski/Desktop/BIOL 343/BIOL343_Midterm/Data/taxonomy_table.csv"
+)
+
+#metadata <-
+metadata <- read.csv(
+  "/Users/coraliespakowski/Desktop/BIOL 343/BIOL343_Midterm/Data/sample_metadata.csv"
+)
+
+#alpha_metrics <-
+alpha_metrics <- read.csv(
+  "/Users/coraliespakowski/Desktop/BIOL 343/BIOL343_Midterm/Data/alpha_metrics.csv"
+)
 ```
+
 ## 3. Inspect the data and data cleaning
 
 Inspect `otu`, `tax`, `metadata` and `alpha_metrics` using `str()` (for `otu`, which has over 2,000 columns, use `dim()` and `str()` on the first few columns only, e.g. `otu[, 1:5]`), then clean the objects:

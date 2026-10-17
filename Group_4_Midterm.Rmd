@@ -98,15 +98,36 @@ Hint: refer to **R Basics → Data Types**, **R Basics → Objects & Variables**
 
 ```{r inspect-and-clean}
 #str()
+dim(otu)
+str(otu[, 1:5])
+str(tax)
+str(metadata)
+str(alpha_metrics)
+
 #identify the chloroplast ASVs
 #chloroplast_asv <-
+chloroplast_asv <- tax %>%
+  filter(Order == "Chloroplast") %>%
+  select(ASVID)
+#dataframe to vector
+chloroplast_asv <- as.vector(chloroplast_asv$ASVID)
+
 #remove the identified ASVs from both tax and otu
 #otu_cleaned <-
+otu_cleaned <- otu %>%
+  select(-any_of(chloroplast_asv))
 #tax_cleaned <-
+tax_cleaned <- tax %>%
+  select(-any_of(chloroplast_asv))
+
 #filter NAs from Type and total_reads and remove the replicate samples using Sample_AC
 #metadata_filtered <-
+metadata_filtered <- metadata %>%
+  filter(!is.na(Type), !is.na(total_reads)) %>%
+  distinct(Sample_AC, .keep_all = TRUE)
 
 ```
+
 ## 4. Joining the files
 
 Combine `metadata_filtered` and `alpha_metrics` to create a new object called `alpha_merged`. Retain `Sample_AC`, `Type`, `Location`, `Whole_or_dissected`, `Shannon` and `Simpson`.
@@ -115,8 +136,10 @@ Hint: **Data Science → Join Datasets and 2D Data Wrangling** in RCC2e.
 
 ```{r join-alpha}
 #alpha_merged <-
+alpha_merged <- 
 
 ```
+
 # Part 2 — Preparing and visualizing the data
 
 ## 5. Visualizing total read counts
@@ -128,6 +151,7 @@ Hint: refer to **Quick Visualizations → Histogram**, **Basic Customization →
 ```{r histogram-total-reads}
 
 ```
+
 ## 6. Prepare the ASV data for plotting
 
 Using `otu_cleaned`:
@@ -160,6 +184,7 @@ Hint: refer to **Data Science → Wide vs Long Data**, **Data Science → Join D
 #otu_long <-
 
 ```
+
 ## 7. Visualizing the top 7 phyla
 
 Use `otu_long` to:
@@ -177,6 +202,7 @@ Hint: refer to **Data Science → 2D Data Wrangling** in RCC2e and, to create th
 ```{r phylum-plots}
 
 ```
+
 ## 8. Visualizing the top 10 genera
 
 Use `otu_long` to:
@@ -194,6 +220,7 @@ Hint: as for Section 7.
 ```{r genus-plots}
 
 ```
+
 ## 9. Visualizing alpha-diversity metrics
 
 Using the `alpha_merged` object:
@@ -206,6 +233,7 @@ Using the `alpha_merged` object:
 ```{r alpha-plots}
 
 ```
+
 # Part 3 — Testing the hypotheses
 
 **H1:** *Rickettsia* relative abundance will be higher in gut samples than in other sample types.
@@ -222,6 +250,7 @@ From `otu_long`, keep the rows whose `Genus` is `Rickettsia`, sum their relative
 #rickettsia <-
 
 ```
+
 ## 11. Two-sample *t*-tests
 
 - Perform a two-sample *t*-test comparing Shannon diversity between whole and dissected samples.
@@ -232,6 +261,7 @@ From `otu_long`, keep the rows whose `Genus` is `Rickettsia`, sum their relative
 ```{r t-tests}
 
 ```
+
 ## 12. Interpretation
 
 In a short paragraph for each hypothesis, say what the figures and tests above show, whether the hypothesis is supported, and what the main limitation of the evidence is.

@@ -185,14 +185,17 @@ For our data, create a new column `Relative_abundance` and calculate it by `Read
 Hint: refer to **Data Science → Wide vs Long Data**, **Data Science → Join Datasets** and **Data Science → 2D Data Wrangling** in RCC2e.
 
 ```{r prepare-otu-long}
-# converting otu_cleaned from wide to long with appropriate column names
+# otu_long <-
 otu_long <- otu_cleaned %>%
   pivot_longer(
     cols = ASV1:ASV2053,
   ) %>%
-  rename("Sample_AC" = "X", "ASVID" = "name", "Reads" = "value")
-
-#otu_long <-
+  rename("Sample_AC" = "X", "ASVID" = "name", "Reads" = "value") %>%
+  full_join(metadata_filtered, by = "Sample_AC") %>%
+  group_by(Sample_AC, Type, Location, Whole_or_dissected) %>%
+  filter(Reads != 0) %>%
+  mutate("Relative_abundance"=Reads/sum(Reads)) %>%
+  full_join(tax_cleaned, by = "ASVID")
 ```
 
 ## 7. Visualizing the top 7 phyla

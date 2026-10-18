@@ -136,8 +136,9 @@ Hint: **Data Science → Join Datasets and 2D Data Wrangling** in RCC2e.
 
 ```{r join-alpha}
 #alpha_merged <-
-alpha_merged <- 
-
+alpha_merged <- left_join(alpha_metrics, metadata_filtered)
+alpha_merged <- alpha_merged %>%
+  select(Sample_AC, Type, Location, Whole_or_dissected, Shannon, Simpson)
 ```
 
 # Part 2 — Preparing and visualizing the data
@@ -149,7 +150,10 @@ Use `ggplot()` to visualize the distribution of `total_reads` across the samples
 Hint: refer to **Quick Visualizations → Histogram**, **Basic Customization → fill and colour (or color)** and **Basic Customization → lab, xlab, and ylab and Themes and Geoms** in RCC2e.
 
 ```{r histogram-total-reads}
-
+# histogram plotting the distribution of total reads across samples
+ggplot(metadata_filtered, aes(x = total_reads)) +
+  geom_histogram(binwidth = 30000, colour = "pink", fill = "maroon") +
+  labs(x = "Total reads across samples", y = "Frequency")
 ```
 
 ## 6. Prepare the ASV data for plotting
@@ -181,8 +185,14 @@ For our data, create a new column `Relative_abundance` and calculate it by `Read
 Hint: refer to **Data Science → Wide vs Long Data**, **Data Science → Join Datasets** and **Data Science → 2D Data Wrangling** in RCC2e.
 
 ```{r prepare-otu-long}
-#otu_long <-
+# converting otu_cleaned from wide to long with appropriate column names
+otu_long <- otu_cleaned %>%
+  pivot_longer(
+    cols = ASV1:ASV2053,
+  ) %>%
+  rename("Sample_AC" = "X", "ASVID" = "name", "Reads" = "value")
 
+#otu_long <-
 ```
 
 ## 7. Visualizing the top 7 phyla

@@ -1,0 +1,292 @@
+---
+title: "BIOL343 Mid-term Coding Challenge"
+author: "Group 4 — names and student numbers in the chunk below"
+date: "`r format(Sys.Date(), '%d %B %Y')`"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# BIOL343 Mid-term Coding Challenge
+
+## Group Members
+
+```{r group_members}
+# Name - Queen's Student Number
+
+# 1. Coralie Spakowski - 20471806
+# 2. Kaylee Ellwood - 20391007
+# 3. Ella Sha - 20457793
+# 4. Darcy Talbot - 20464912
+# 5. Apolline Bonneville - 20629019
+# 6. Iryna Ozimek - 20508451
+
+```
+
+# DO THIS FIRST {-}
+
+Copy and paste this into your R Console to start positpal, but replace `FILENAME.Rmd` with the name you are going to use for the .R or .Rmd file you are going to upload (for this challenge, rename the template first, e.g. `Group_#_Midterm.Rmd`, and use that exact name). **Do not include it as a code chunk.**
+
+```
+install.packages("remotes")
+remotes::install_url("https://quantitative.bio/downloads/positpal.tar.gz", upgrade = "never")
+positpal::start("FILENAME.Rmd")
+```
+
+Before you run it: open the project folder for this challenge in Positron (*File → Open Folder…*) so that it is your working directory, save this file in that folder under the name you will upload, and check that autosave is on (*File → Auto Save*). The first time you use positpal on a computer, `start()` will ask you to run `positpal::accept_eula()` once; do that, then run the `start()` line again. After a few minutes of work, check in the Explorer pane that the `.capture/snaps` folder inside your project is filling up with files. If it is not, or if `start()` refuses to record, run `positpal::doctor("FILENAME.Rmd")` and bring the output to tutorial or office hours. Run the `start()` line again at the start of every session you spend on this file.
+
+# Part 1 — Importing and basic data inspection
+
+The four files are in the `data` folder: `sample_metadata.csv`, `otu_table.csv`, `taxonomy_table.csv` and `alpha_metrics.csv`. The instructions describe each file and its columns.
+
+- In `sample_metadata.csv`, each row is one sample record. `Sample_full` identifies individual records, while `Sample_AC` identifies samples shared across replicates. Other columns describe location, year, sample type, DNA concentration (`Stock_Conc`) and the total number of sequencing reads for the sample.
+- In `otu_table.csv`, each row is one sample and each ASV column contains sequencing read counts. The first column (the sample name) has no header, so R will call it `X`.
+- In `taxonomy_table.csv`, each row is one ASV, identified by `ASVID`, with taxonomic assignments from `Kingdom` to `Species`.
+- In `alpha_metrics.csv`, each row is one sample, with its `Shannon` and `Simpson` diversity metrics.
+
+## 1. Load packages
+
+Load the packages you will use (Chapter 10, *Setup*): `dplyr`, `tidyr`, `tibble` and `ggplot2` (or `tidyverse`, which loads all of them).
+
+```{r load-packages, message=FALSE}
+library(tidyverse)
+
+```
+
+## 2. Import the four files
+
+Import each file and save them as `otu`, `tax`, `metadata` and `alpha_metrics`. For `tax`, the row names should be the `ASVID` column.
+
+Hint: refer to Chapter 3, *Import Data* in RCC2e.
+
+```{r import-data}
+#otu <-
+otu <- read.csv(
+  "/Users/coraliespakowski/Desktop/BIOL 343/BIOL343_Midterm/Data/otu_table.csv"
+)
+
+#tax <-
+tax <- read.csv(
+  "/Users/coraliespakowski/Desktop/BIOL 343/BIOL343_Midterm/Data/taxonomy_table.csv"
+)
+
+#metadata <-
+metadata <- read.csv(
+  "/Users/coraliespakowski/Desktop/BIOL 343/BIOL343_Midterm/Data/sample_metadata.csv"
+)
+
+#alpha_metrics <-
+alpha_metrics <- read.csv(
+  "/Users/coraliespakowski/Desktop/BIOL 343/BIOL343_Midterm/Data/alpha_metrics.csv"
+)
+```
+
+## 3. Inspect the data and data cleaning
+
+Inspect `otu`, `tax`, `metadata` and `alpha_metrics` using `str()` (for `otu`, which has over 2,000 columns, use `dim()` and `str()` on the first few columns only, e.g. `otu[, 1:5]`), then clean the objects:
+
+- Identify the `ASVID` values where `Order` is `Chloroplast` in `tax`. Remove the corresponding rows from `tax` and columns from `otu`, saving the results as `tax_cleaned` and `otu_cleaned`. Watch out: many ASVs have no `Order` (`NA`), and a comparison with `NA` is `NA`, not `FALSE`.
+- Use `rownames_to_column()` (from the `tibble` package) to move the ASV row names in `tax_cleaned` into a column called `ASVID`.
+- Filter out the rows of `metadata` with `NA` in the `Type` or `total_reads` columns (this also removes the negative-control records), saving the result as `metadata_filtered`.
+- Remove the replicate sample records from `metadata_filtered` using `distinct()` on `Sample_AC`.
+
+**Do not edit the original files by hand**; make all changes in R.
+
+Hint: refer to **R Basics → Data Types**, **R Basics → Objects & Variables**, **Data Science → 2D Data Wrangling** and **Data Science → Naughty Data** in RCC2e.
+
+```{r inspect-and-clean}
+#str()
+dim(otu)
+str(otu[, 1:5])
+str(tax)
+str(metadata)
+str(alpha_metrics)
+
+#identify the chloroplast ASVs
+#chloroplast_asv <-
+chloroplast_asv <- tax %>%
+  filter(Order == "Chloroplast") %>%
+  select(ASVID)
+#dataframe to vector
+chloroplast_asv <- as.vector(chloroplast_asv$ASVID)
+
+#remove the identified ASVs from both tax and otu
+#otu_cleaned <-
+otu_cleaned <- otu %>%
+  select(-any_of(chloroplast_asv))
+#tax_cleaned <-
+tax_cleaned <- tax %>%
+  select(-any_of(chloroplast_asv))
+
+#filter NAs from Type and total_reads and remove the replicate samples using Sample_AC
+#metadata_filtered <-
+metadata_filtered <- metadata %>%
+  filter(!is.na(Type), !is.na(total_reads)) %>%
+  distinct(Sample_AC, .keep_all = TRUE)
+
+```
+
+## 4. Joining the files
+
+Combine `metadata_filtered` and `alpha_metrics` to create a new object called `alpha_merged`. Retain `Sample_AC`, `Type`, `Location`, `Whole_or_dissected`, `Shannon` and `Simpson`.
+
+Hint: **Data Science → Join Datasets and 2D Data Wrangling** in RCC2e.
+
+```{r join-alpha}
+#alpha_merged <-
+alpha_merged <- left_join(alpha_metrics, metadata_filtered)
+alpha_merged <- alpha_merged %>%
+  select(Sample_AC, Type, Location, Whole_or_dissected, Shannon, Simpson)
+```
+
+# Part 2 — Preparing and visualizing the data
+
+## 5. Visualizing total read counts
+
+Use `ggplot()` to visualize the distribution of `total_reads` across the samples in `metadata_filtered`. Select an appropriate `binwidth` (or number of `bins`) for the histogram. Give the bars a fill colour and a border colour, and label both axes.
+
+Hint: refer to **Quick Visualizations → Histogram**, **Basic Customization → fill and colour (or color)** and **Basic Customization → lab, xlab, and ylab and Themes and Geoms** in RCC2e.
+
+```{r histogram-total-reads}
+# histogram plotting the distribution of total reads across samples
+ggplot(metadata_filtered, aes(x = total_reads)) +
+  geom_histogram(binwidth = 30000, colour = "pink", fill = "maroon") +
+  labs(x = "Total reads across samples", y = "Frequency")
+```
+
+## 6. Prepare the ASV data for plotting
+
+Using `otu_cleaned`:
+
+- Convert the OTU table from wide format to long format using `pivot_longer()`.
+- Store the ASV identifiers in a column called `ASVID` and the read counts in a column called `Reads`.
+- Rename the column `X` (the unnamed sample column) to `Sample_AC`.
+- Join with `metadata_filtered` using `Sample_AC`.
+- Group the data by `Sample_AC`, `Type`, `Location` and `Whole_or_dissected`.
+- Remove samples where the total number of reads is 0.
+- Calculate the *relative abundance* of each ASV within each sample.
+- As a final step, join the taxonomy table (`tax_cleaned`) by `ASVID`.
+- Save the resulting object as `otu_long`.
+
+Relative abundance is the proportion of a sample's reads that belong to one ASV, a number between 0 and 1 (see the instructions, *Relative abundance*); the relative abundances of all ASVs in a sample add up to 1:
+
+$$
+\text{Relative abundance} =
+\frac{\text{Reads of microbe A in sample 1}}
+{\text{Total reads of all microbes in sample 1}}
+$$
+
+For our data, create a new column `Relative_abundance` and calculate it by `Reads / sum(Reads)` within each sample.
+
+*Note: use the pipe operator (`%>%`) to do all of this in one step instead of creating multiple new objects.*
+
+Hint: refer to **Data Science → Wide vs Long Data**, **Data Science → Join Datasets** and **Data Science → 2D Data Wrangling** in RCC2e.
+
+```{r prepare-otu-long}
+# converting from wide to long
+otu_long <- otu_cleaned %>%
+  pivot_longer(
+    cols = c("Xdat", "Ydat"),
+    names_to = "Measurement",
+    values_to = "Value"
+  )
+#otu_long <-
+```
+
+## 7. Visualizing the top 7 phyla
+
+Use `otu_long` to:
+
+- Calculate the relative abundance of each bacterial phylum within each sample.
+- Identify the 7 most abundant phyla across all samples.
+- Group all remaining phyla (including ASVs with no phylum) into an "Other" category.
+- Create a stacked bar plot showing phylum relative abundance for each sample.
+- Make two versions of the plot: one that uses `facet_wrap()` to separate the samples by `Location`, and one that separates them by `Type`.
+- Include appropriate axis labels, a legend title, and `theme_classic()`.
+- Rotate the sample labels on the x-axis so they are easier to read.
+
+Hint: refer to **Data Science → 2D Data Wrangling** in RCC2e and, to create the stacked bar plot, **Quick Visualizations → Basic Graphs**, **Basic Customization → labs, Themes and Geoms**, **Multi-plot Graphs → facets** and the **ggplot2 cheatsheet** in OnQ. *Use `geom_col()` to create the stacked bar plot instead of `geom_bar()`.*
+
+```{r phylum-plots}
+
+```
+
+## 8. Visualizing the top 10 genera
+
+Use `otu_long` to:
+
+- Calculate the relative abundance of each bacterial genus within each sample.
+- Identify the 10 most abundant genera across all samples.
+- Group all remaining genera (including ASVs with no genus) into an "Other" category.
+- Create a stacked bar plot showing genus relative abundance for each sample.
+- As in Section 7, make one version faceted by `Location` and one by `Type`.
+- Include appropriate axis labels, a legend title, and `theme_classic()`.
+- Rotate the sample labels on the x-axis so they are easier to read.
+
+Hint: as for Section 7.
+
+```{r genus-plots}
+
+```
+
+## 9. Visualizing alpha-diversity metrics
+
+Using the `alpha_merged` object:
+
+- Create a figure comparing Shannon diversity between whole and dissected samples (`Whole_or_dissected`).
+- Create a second figure comparing Simpson diversity between whole and dissected samples.
+- Use an appropriate ggplot2 geometry to display the distribution of each diversity metric.
+- Include descriptive axis labels and a title for each figure.
+
+```{r alpha-plots}
+
+```
+
+# Part 3 — Testing the hypotheses
+
+**H1:** *Rickettsia* relative abundance will be higher in gut samples than in other sample types.
+
+**H2:** Whole-tick samples will have higher microbial alpha diversity than dissected samples, as measured by the Shannon and Simpson indices.
+
+For H1 you will use a figure and the numbers of samples per type; no statistical test is asked for. For H2 you will use *t*-tests.
+
+## 10. *Rickettsia* by sample type
+
+From `otu_long`, keep the rows whose `Genus` is `Rickettsia`, sum their relative abundance within each sample (keeping `Type`), and report the number of samples and the mean *Rickettsia* relative abundance for each `Type`. Then plot the per-sample *Rickettsia* relative abundance by `Type` as a boxplot with the individual points shown, with axis labels, a title and `theme_classic()`.
+
+```{r rickettsia-by-type}
+#rickettsia <-
+
+```
+
+## 11. Two-sample *t*-tests
+
+- Perform a two-sample *t*-test comparing Shannon diversity between whole and dissected samples.
+- Perform a second *t*-test comparing Simpson diversity between whole and dissected samples.
+- Report the *t*-statistic, degrees of freedom and *p*-value for both tests as a table made with `knitr::kable()`.
+- Based on the *p*-values, state whether there is evidence of a difference in alpha diversity between whole and dissected samples.
+
+```{r t-tests}
+
+```
+
+## 12. Interpretation
+
+In a short paragraph for each hypothesis, say what the figures and tests above show, whether the hypothesis is supported, and what the main limitation of the evidence is.
+
+**H1 — Answer:**
+
+**H2 — Answer:**
+
+# DO THIS LAST {-}
+
+When your document is finished, knit it, open the `.html` in a web browser and **print it to PDF** (*File → Print → Save as PDF*; name it `Group_#_Midterm.pdf`). Then copy and paste this into the R Console to stop positpal and create your coding log. **Do not include it as a code chunk.**
+
+```
+positpal::stop_capture()
+positpal::export_capture()
+```
+
+`export_capture()` prints the name and location of the `my-capture-YYYYMMDD-HHMMSS.zip` it creates beside this file. **Each group member** uploads their own `.zip` to the **"Mid-term — Coding Log (individual)"** dropbox on OnQ; the group's `.Rmd` and the **`.pdf`** (not the `.html` — OnQ shows uploaded HTML as source code, not as a page) go to your section's **TUT02-Mid-term Coding Challenge** or **TUT03-Mid-term Coding Challenge** folder. Submissions without the log are incomplete. If `export_capture()` fails, zip the `.capture` folder yourself and upload that instead.

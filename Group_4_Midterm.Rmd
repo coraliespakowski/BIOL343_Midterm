@@ -153,7 +153,9 @@ Hint: refer to **Quick Visualizations → Histogram**, **Basic Customization →
 # histogram plotting the distribution of total reads across samples
 ggplot(metadata_filtered, aes(x = total_reads)) +
   geom_histogram(binwidth = 30000, colour = "pink", fill = "maroon") +
-  labs(x = "Total reads across samples", y = "Frequency")
+  labs(x = "Total reads across samples", y = "Count") +
+  theme_classic()
+### COUNT VS FREQUENCY?
 ```
 
 ## 6. Prepare the ASV data for plotting
@@ -194,8 +196,9 @@ otu_long <- otu_cleaned %>%
   full_join(metadata_filtered, by = "Sample_AC") %>%
   group_by(Sample_AC, Type, Location, Whole_or_dissected) %>%
   filter(Reads != 0) %>%
-  mutate("Relative_abundance"=Reads/sum(Reads)) %>%
+  mutate("Relative_abundance" = Reads / sum(Reads)) %>%
   full_join(tax_cleaned, by = "ASVID")
+### so many NA and repeating values, fix this
 ```
 
 ## 7. Visualizing the top 7 phyla
@@ -213,7 +216,25 @@ Use `otu_long` to:
 Hint: refer to **Data Science → 2D Data Wrangling** in RCC2e and, to create the stacked bar plot, **Quick Visualizations → Basic Graphs**, **Basic Customization → labs, Themes and Geoms**, **Multi-plot Graphs → facets** and the **ggplot2 cheatsheet** in OnQ. *Use `geom_col()` to create the stacked bar plot instead of `geom_bar()`.*
 
 ```{r phylum-plots}
+# calculate relative abundance of each phylum within each sample
+RA_phylum <- otu_long %>%
+  group_by(Phylum) %>%
+  summarise(Mean_RA = mean(Relative_abundance, na.rm = TRUE)) %>%
+  arrange(desc(Mean_RA)) ### why is there a NA phylum???
+### How to keep all the other columns???
 
+# 7 most abundant phyla (sort descending and show top 7) + other
+most_abundant_phyla <- RA_phylum[1:7, ]
+other <- RA_phylum[8:29, ]
+
+# staked bar plot showing phylum relative abundance for each sample
+# separate by location
+ggplot(otu_long, aes(x = Phylum, y = Relative_abundance)) +
+  geom_col() +
+  labs(x = "", y = "") +
+  facet_wrap(. ~ Location)
+# separate by type
+ggplot(otu_long) + geom_col() + labs(x = "", y = "") + facet_wrap(. ~ Type)
 ```
 
 ## 8. Visualizing the top 10 genera
@@ -231,7 +252,7 @@ Use `otu_long` to:
 Hint: as for Section 7.
 
 ```{r genus-plots}
-
+# SAME AS 7 JUST WITH GENUS
 ```
 
 ## 9. Visualizing alpha-diversity metrics

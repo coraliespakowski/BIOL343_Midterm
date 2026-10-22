@@ -69,7 +69,8 @@ otu <- read.csv(
 
 #tax <-
 tax <- read.csv(
-  "/Users/coraliespakowski/Desktop/BIOL 343/BIOL343_Midterm/Data/taxonomy_table.csv"
+  "/Users/coraliespakowski/Desktop/BIOL 343/BIOL343_Midterm/Data/taxonomy_table.csv",
+  row.names = 1
 )
 
 #metadata <-
@@ -107,25 +108,23 @@ str(alpha_metrics)
 #identify the chloroplast ASVs
 #chloroplast_asv <-
 chloroplast_asv <- tax %>%
-  filter(Order == "Chloroplast") %>%
+  filter(!is.na(Order), Order == "Chloroplast") %>%
   select(ASVID)
-#dataframe to vector
-chloroplast_asv <- as.vector(chloroplast_asv$ASVID)
 
 #remove the identified ASVs from both tax and otu
 #otu_cleaned <-
 otu_cleaned <- otu %>%
-  select(-any_of(chloroplast_asv))
+  select(-any_of(rownames(tax[tax$Order == "Chloroplast", ])))
 #tax_cleaned <-
 tax_cleaned <- tax %>%
-  select(-any_of(chloroplast_asv))
+  filter(is.na(Order) | Order != "Chloroplast") %>%
+  rownames_to_column(var = "ASVID")
 
 #filter NAs from Type and total_reads and remove the replicate samples using Sample_AC
 #metadata_filtered <-
 metadata_filtered <- metadata %>%
   filter(!is.na(Type), !is.na(total_reads)) %>%
   distinct(Sample_AC, .keep_all = TRUE)
-
 ```
 
 ## 4. Joining the files
@@ -193,12 +192,11 @@ otu_long <- otu_cleaned %>%
     cols = ASV1:ASV2053,
   ) %>%
   rename("Sample_AC" = "X", "ASVID" = "name", "Reads" = "value") %>%
-  full_join(metadata_filtered, by = "Sample_AC") %>%
+  inner_join(metadata_filtered, by = "Sample_AC") %>%
   group_by(Sample_AC, Type, Location, Whole_or_dissected) %>%
   filter(Reads != 0) %>%
   mutate("Relative_abundance" = Reads / sum(Reads)) %>%
-  full_join(tax_cleaned, by = "ASVID")
-### so many NA and repeating values, fix this
+  inner_join(tax_cleaned, by = "ASVID")
 ```
 
 ## 7. Visualizing the top 7 phyla
@@ -218,23 +216,17 @@ Hint: refer to **Data Science → 2D Data Wrangling** in RCC2e and, to create th
 ```{r phylum-plots}
 # calculate relative abundance of each phylum within each sample
 RA_phylum <- otu_long %>%
-  group_by(Phylum) %>%
-  summarise(Mean_RA = mean(Relative_abundance, na.rm = TRUE)) %>%
-  arrange(desc(Mean_RA)) ### why is there a NA phylum???
-### How to keep all the other columns???
+  aggregate(Relative_abundance ~ Phylum, FUN = mean) %>%
+  arrange(desc(Relative_abundance))
 
 # 7 most abundant phyla (sort descending and show top 7) + other
-most_abundant_phyla <- RA_phylum[1:7, ]
-other <- RA_phylum[8:29, ]
+most_abundant_phylum <- RA_phylum[1:7, ]
+other_phylum <- RA_phylum[8:21, ]
 
 # staked bar plot showing phylum relative abundance for each sample
 # separate by location
-ggplot(otu_long, aes(x = Phylum, y = Relative_abundance)) +
-  geom_col() +
-  labs(x = "", y = "") +
-  facet_wrap(. ~ Location)
+
 # separate by type
-ggplot(otu_long) + geom_col() + labs(x = "", y = "") + facet_wrap(. ~ Type)
 ```
 
 ## 8. Visualizing the top 10 genera
@@ -253,6 +245,27 @@ Hint: as for Section 7.
 
 ```{r genus-plots}
 # SAME AS 7 JUST WITH GENUS
+# calculate relative abundance of each genus within each sample
+RA_genus <- otu_long %>%
+  group_by(Genus) %>%
+  summarise(Mean_RA = mean(Relative_abundance, na.rm = TRUE)) %>%
+  arrange(desc(Mean_RA))
+
+# 7 most abundant phyla (sort descending and show top 7) + other
+most_abundant_genus <- RA_genus[1:7, ]
+other_genus <- RA_genus[8:22, ]
+
+# staked bar plot showing genus relative abundance for each sample
+# separate by location
+ggplot(otu_long, aes(x = Genus, y = Relative_abundance)) +
+  geom_col() +
+  labs(x = "", y = "") +
+  facet_wrap(. ~ Location)
+# separate by type
+ggplot(otu_long, aes(x = Genus, y = Relative_abundance)) +
+  geom_col() +
+  labs(x = "", y = "") +
+  facet_wrap(. ~ Type)
 ```
 
 ## 9. Visualizing alpha-diversity metrics
@@ -265,7 +278,11 @@ Using the `alpha_merged` object:
 - Include descriptive axis labels and a title for each figure.
 
 ```{r alpha-plots}
+# figure Shannon diversity whole vs dissected
 
+# figure Simpson diversity whole vs dissected
+
+# ggplots to display each diversity metric - w/ axis labels and titles
 ```
 
 # Part 3 — Testing the hypotheses

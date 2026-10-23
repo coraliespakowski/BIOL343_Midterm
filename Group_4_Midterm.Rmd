@@ -21,7 +21,6 @@ knitr::opts_chunk$set(echo = TRUE)
 # 3. Ella Sha - 20457793
 # 4. Darcy Talbot - 20464912
 # 5. Apolline Bonneville - 20629019
-# 6. Iryna Ozimek - 20508451
 
 ```
 
@@ -525,7 +524,7 @@ In a short paragraph for each hypothesis, say what the figures and tests above s
 The hypothesis that *Rickettsia* relative abundance will be higher in gut samples than in other sample types is not supported. According to the figure depicting Rickettsia relative abundance by sample type, the gut, residual, and whole tick samples all have a high relative abundance of Rickettsia bacteria. Whole and residual samples both have a higher mean relative abundance than gut samples (0.776 and 0.984 compared to 0.760). The main limitation of the evidence is that the number of total samples varies between sample types. There are only 3 residual samples, while there are 17 whole tick samples and 8 gut samples. Diﬀerent results may have occured had the number of samples been consistent across types, however based on the current evidence the hypothesis is not supported.
 
 **H2 — Answer:**
-The hypothesis that whole-tick samples will have higher microbial alpha diversity than dissected samples, as measured by the Shannon and Simpson indices is supported. The t-test for Shannon diversity (p=0.02) indicates that there is a statistically significant difference in means between dissected- and whole-tick samples. The same is true for the Simpson diversity (p=0.03). In both cases, the mean in the whole-tick group is superior to the mean in the dissected-tick group. Again the main limitation here comes down to the number of samples which differs between the two groups. The whole-tick group has 17 samples whereas the dissected group has only 13 samples. Once more, diﬀerent results may have occured had the number of samples been consistent across groups, however based on the current evidence the hypothesis is supported.
+The hypothesis that whole-tick samples will have higher microbial alpha diversity than dissected samples, as measured by the Shannon and Simpson indices is supported. The t-test for Shannon diversity (p=0.02) indicates that there is a statistically significant difference in means between dissected- and whole-tick samples. The same is true for the Simpson diversity (p=0.03). In both cases, the mean in the whole-tick group is superior to the mean in the dissected-tick group. The main limitation here would likely be the small sample size. It makes it harder to generalize the results.
 
 # DO THIS LAST {-}
 

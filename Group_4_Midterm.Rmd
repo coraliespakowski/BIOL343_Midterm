@@ -151,10 +151,9 @@ Hint: refer to **Quick Visualizations → Histogram**, **Basic Customization →
 ```{r histogram-total-reads}
 # histogram plotting the distribution of total reads across samples
 ggplot(metadata_filtered, aes(x = total_reads)) +
-  geom_histogram(binwidth = 30000, colour = "pink", fill = "maroon") +
+  geom_histogram(binwidth = 15000, colour = "pink", fill = "maroon") +
   labs(x = "Total reads across samples", y = "Count") +
   theme_classic()
-### COUNT VS FREQUENCY?
 ```
 
 ## 6. Prepare the ASV data for plotting
@@ -216,17 +215,81 @@ Hint: refer to **Data Science → 2D Data Wrangling** in RCC2e and, to create th
 ```{r phylum-plots}
 # calculate relative abundance of each phylum within each sample
 RA_phylum <- otu_long %>%
-  aggregate(Relative_abundance ~ Phylum, FUN = mean) %>%
-  arrange(desc(Relative_abundance))
+  group_by(Phylum, Sample_AC, Location, Type) %>%
+  summarise(Reads = sum(Reads, na.rm = TRUE), .groups = "drop") %>%
+  group_by(Sample_AC) %>%
+  mutate(relative_abundance = Reads / sum(Reads)) %>%
+  ungroup()
 
-# 7 most abundant phyla (sort descending and show top 7) + other
-most_abundant_phylum <- RA_phylum[1:7, ]
-other_phylum <- RA_phylum[8:21, ]
+# 7 most abundant phyla
+most_abundant_phyla <- RA_phylum %>%
+  filter(!is.na(Phylum)) %>%
+  group_by(Phylum) %>%
+  summarise(
+    mean_relative_abundance = mean(relative_abundance, na.rm = TRUE)
+  ) %>%
+  slice_max(mean_relative_abundance, n = 7)
+
+# 'other' category
+RA_phylum <- RA_phylum %>%
+  mutate(
+    Phylum_grouped = if_else(
+      !is.na(Phylum) & Phylum %in% most_abundant_phyla$Phylum,
+      Phylum,
+      "Other"
+    )
+  )
 
 # staked bar plot showing phylum relative abundance for each sample
-# separate by location
+# plot version 1: by Location
+RA_phylum %>%
+  filter(!is.na(Location)) %>%
+  ggplot(aes(x = Sample_AC, y = relative_abundance, fill = Phylum_grouped)) +
+  geom_col() +
+  facet_wrap(~Location) +
+  labs(
+    x = "Sample",
+    y = "Relative Abundance",
+    fill = "Phylum",
+    title = "Relative Abundance of Bacterial Phyla in Tick Microbiomes",
+  ) +
+  theme_classic() +
+  theme(
+    axis.text.x = element_text(
+      angle = 90,
+      hjust = 1,
+      size = 6
+    )
+  )
 
-# separate by type
+# plot version 2: by Type
+RA_phylum %>%
+  filter(!is.na(Type)) %>%
+  ggplot(aes(x = Sample_AC, y = relative_abundance, fill = Phylum_grouped)) +
+  geom_col() +
+  facet_wrap(
+    ~Type,
+    labeller = as_labeller(c(
+      "g" = "Gut",
+      "rem" = "Residual Tissue after Dissection",
+      "sg" = "Salivary Glands",
+      "w" = "Whole Tick"
+    ))
+  ) +
+  labs(
+    x = "Sample",
+    y = "Relative Abundance",
+    title = "Relative Abundance of Bacterial Phyla in Tick Microbiomes",
+    fill = "Phylum",
+  ) +
+  theme_classic() +
+  theme(
+    axis.text.x = element_text(
+      angle = 90,
+      hjust = 1,
+      size = 6
+    )
+  )
 ```
 
 ## 8. Visualizing the top 10 genera
@@ -244,28 +307,83 @@ Use `otu_long` to:
 Hint: as for Section 7.
 
 ```{r genus-plots}
-# SAME AS 7 JUST WITH GENUS
 # calculate relative abundance of each genus within each sample
 RA_genus <- otu_long %>%
-  group_by(Genus) %>%
-  summarise(Mean_RA = mean(Relative_abundance, na.rm = TRUE)) %>%
-  arrange(desc(Mean_RA))
+  group_by(Genus, Sample_AC, Location, Type) %>%
+  summarise(Reads = sum(Reads, na.rm = TRUE), .groups = "drop") %>%
+  group_by(Sample_AC) %>%
+  mutate(relative_abundance = Reads / sum(Reads)) %>%
+  ungroup()
 
-# 7 most abundant phyla (sort descending and show top 7) + other
-most_abundant_genus <- RA_genus[1:7, ]
-other_genus <- RA_genus[8:22, ]
+# 7 most abundant genus
+most_abundant_genus <- RA_genus %>%
+  filter(!is.na(Genus)) %>%
+  group_by(Genus) %>%
+  summarise(
+    mean_relative_abundance = mean(relative_abundance, na.rm = TRUE)
+  ) %>%
+  slice_max(mean_relative_abundance, n = 7)
+
+# 'other' category
+RA_genus <- RA_genus %>%
+  mutate(
+    Genus_grouped = if_else(
+      !is.na(Genus) & Genus %in% most_abundant_genus$Genus,
+      Genus,
+      "Other"
+    )
+  )
 
 # staked bar plot showing genus relative abundance for each sample
-# separate by location
-ggplot(otu_long, aes(x = Genus, y = Relative_abundance)) +
+# plot version 1: by Location
+RA_genus %>%
+  filter(!is.na(Location)) %>%
+  ggplot(aes(x = Sample_AC, y = relative_abundance, fill = Genus_grouped)) +
   geom_col() +
-  labs(x = "", y = "") +
-  facet_wrap(. ~ Location)
-# separate by type
-ggplot(otu_long, aes(x = Genus, y = Relative_abundance)) +
+  facet_wrap(~Location) +
+  labs(
+    x = "Sample",
+    y = "Relative Abundance",
+    title = "Relative Abundance of Bacterial Genera in Tick Microbiomes",
+    fill = "Phylum",
+  ) +
+  theme_classic() +
+  theme(
+    axis.text.x = element_text(
+      angle = 90,
+      hjust = 1,
+      size = 6
+    )
+  )
+
+# plot version 2: by Type
+RA_genus %>%
+  filter(!is.na(Type)) %>%
+  ggplot(aes(x = Sample_AC, y = relative_abundance, fill = Genus_grouped)) +
   geom_col() +
-  labs(x = "", y = "") +
-  facet_wrap(. ~ Type)
+  facet_wrap(
+    ~Type,
+    labeller = as_labeller(c(
+      "g" = "Gut",
+      "rem" = "Residual Tissue after Dissection",
+      "sg" = "Salivary Glands",
+      "w" = "Whole Tick"
+    ))
+  ) +
+  labs(
+    x = "Sample",
+    y = "Relative Abundance",
+    title = "Relative Abundance of Bacterial Phyla in Tick Microbiomes",
+    fill = "Phylum",
+  ) +
+  theme_classic() +
+  theme(
+    axis.text.x = element_text(
+      angle = 90,
+      hjust = 1,
+      size = 6
+    )
+  )
 ```
 
 ## 9. Visualizing alpha-diversity metrics
@@ -279,10 +397,54 @@ Using the `alpha_merged` object:
 
 ```{r alpha-plots}
 # figure Shannon diversity whole vs dissected
+alpha_merged %>%
+  ggplot(aes(x = Sample_AC, y = Shannon)) +
+  geom_point() +
+  facet_wrap(
+    ~Whole_or_dissected,
+    labeller = as_labeller(c(
+      "d" = "Dissected",
+      "w" = "Whole"
+    ))
+  ) +
+  labs(
+    x = "Sample",
+    y = "Shannon Diversity",
+    title = "Shannon Diversity of Tick Microbial Communities in Whole and Dissected Samples"
+  ) +
+  theme_classic() +
+  theme(
+    axis.text.x = element_text(
+      angle = 90,
+      hjust = 1,
+      size = 6
+    )
+  )
 
 # figure Simpson diversity whole vs dissected
-
-# ggplots to display each diversity metric - w/ axis labels and titles
+alpha_merged %>%
+  ggplot(aes(x = Sample_AC, y = Simpson)) +
+  geom_point() +
+  facet_wrap(
+    ~Whole_or_dissected,
+    labeller = as_labeller(c(
+      "d" = "Dissected",
+      "w" = "Whole"
+    ))
+  ) +
+  labs(
+    x = "Sample",
+    y = "Simpson Diversity",
+    title = "Simpson Diversity of Tick Microbial Communities in Whole and Dissected Samples"
+  ) +
+  theme_classic() +
+  theme(
+    axis.text.x = element_text(
+      angle = 90,
+      hjust = 1,
+      size = 6
+    )
+  )
 ```
 
 # Part 3 — Testing the hypotheses
@@ -299,6 +461,9 @@ From `otu_long`, keep the rows whose `Genus` is `Rickettsia`, sum their relative
 
 ```{r rickettsia-by-type}
 #rickettsia <-
+rickettsia <- otu_long %>%
+  filter(Genus == "Rickettsia")
+nrow(rickettsia)
 
 ```
 

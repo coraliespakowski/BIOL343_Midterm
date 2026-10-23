@@ -462,9 +462,42 @@ From `otu_long`, keep the rows whose `Genus` is `Rickettsia`, sum their relative
 ```{r rickettsia-by-type}
 #rickettsia <-
 rickettsia <- otu_long %>%
-  filter(Genus == "Rickettsia")
-nrow(rickettsia)
+  filter(Genus == "Rickettsia") %>%
+  filter(!is.na(Sample_AC)) %>%
+  group_by(Sample_AC, Type, Genus) %>%
+  summarise(
+    sum_relative_abundance = sum(Relative_abundance, na.rm = TRUE),
+    .groups = "drop"
+  )
+summary_rick <- rickettsia %>%
+  filter(!is.na(Type)) %>%
+  group_by(Type) %>%
+  summarise(
+    relative_abundance = mean(sum_relative_abundance),
+    total_samples = n()
+  )
+print(summary_rick)
 
+# plotting the per-sample Rickettsia relative abundance by `Type`
+rickettsia %>%
+  filter(!is.na(Type)) %>%
+  ggplot(aes(x = Type, y = sum_relative_abundance)) +
+  geom_boxplot() +
+  geom_jitter(width = 0.15) +
+  scale_x_discrete(
+    labels = c(
+      "g" = "Gut",
+      "rem" = "Residual",
+      "sg" = "Salivary Glands",
+      "w" = "Whole Tick"
+    )
+  ) +
+  labs(
+    x = "Sample Type",
+    y = "Relative Abundance",
+    title = "Rickettsia Relative Abundance by Sample Type"
+  ) +
+  theme_classic()
 ```
 
 ## 11. Two-sample *t*-tests
@@ -475,7 +508,13 @@ nrow(rickettsia)
 - Based on the *p*-values, state whether there is evidence of a difference in alpha diversity between whole and dissected samples.
 
 ```{r t-tests}
+# two-sample t-test comparing Shannon diversity between whole and dissected samples
+shannon_test <- t.test(Shannon ~ Whole_or_dissected, data = alpha_merged)
+print(shannon_test)
 
+# two-sample t-test comparing Simpson diversity between whole and dissected samples
+simpson_test <- t.test(Simpson ~ Whole_or_dissected, data = alpha_merged)
+print(simpson_test)
 ```
 
 ## 12. Interpretation
